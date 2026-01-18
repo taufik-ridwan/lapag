@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urutan Presentasi Lapag Generator</title>
+    
+    <!-- Include html2canvas library -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background-color: #f8f9fa;
+            margin: 0;
+            color: #333;
+        }
+
+        .main-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1500px;
+            margin: 0 auto;
+            align-items: flex-start;
+        }
+
+        /* --- LEFT PANEL (Table) --- */
+        .left-panel {
+            flex: 0 0 auto;
+            width: 600px; 
+            max-width: 100%;
+        }
+
+        .table-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .table-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin: 0;
+            margin-right: auto;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 5px;
+        }
+
+        .action-btn { 
+            border: none;
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            color: white;
+            white-space: nowrap;
+        }
+
+        .clear-btn { background-color: #e24a4a; }
+        .clear-btn:hover { background-color: #bd3535; }
+
+        .export-btn { background-color: #28a745; }
+        .export-btn:hover { background-color: #218838; }
+
+        .save-btn { background-color: #17a2b8; }
+        .save-btn:hover { background-color: #138496; }
+
+        .load-btn { background-color: #6c757d; }
+        .load-btn:hover { background-color: #545b62; }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            font-family: Calibri, Arial, sans-serif;
+            font-size: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        th, td { border: 1px solid #000; padding: 6px 10px; }
+        th { background-color: #b4c6e7; text-align: center; user-select: none; }
+        
+        .col-no { text-align: center; width: 30px; cursor: move; }
+        .col-init { text-align: center; width: 50px; }
+        .col-name { text-align: center; }
+        .col-action { width: 70px; text-align: center; border: 1px solid #000; }
+        .col-ket { text-align: left; width: 120px; font-style: italic; color: #555; }
+
+        .action-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .del-btn {
+            background: none;
+            border: none;
+            color: #cc0000;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            margin-left: 5px;
+        }
+        .del-btn:hover { color: #ff0000; }
+
+        .color-swatch {
+            width: 16px;
+            height: 16px;
+            border: 1px solid #666;
+            cursor: pointer;
+            display: inline-block;
+            border-radius: 3px;
+            transition: transform 0.1s;
+        }
+        .color-swatch:hover { transform: scale(1.1); border-color: #000; }
+        
+        .swatch-light { background-color: #d9e1f2; } 
+        .swatch-dark { background-color: #b4c6e7; }  
+
+        td[contenteditable="true"]:focus { background-color: #fff !important; outline: 2px solid #4a90e2; }
+        tr.dragging { opacity: 0.5; background-color: #fffacd !important; }
+        tr.dragging td { background-color: #fffacd !important; }
+
+        /* --- RIGHT SIDE WRAPPER (Stacks Vertical Cards) --- */
+        .right-wrapper {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* --- RIGHT PANEL CARDS --- */
+        .right-panel-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            height: fit-content;
+        }
+
+        .panel-header {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 16px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        /* Tabs for Group Filtering */
+        .tab-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 13px;
+            color: #555;
+        }
+        
+        .tab-btn.active {
+            background-color: #4a90e2;
+            color: white;
+            border-color: #4a90e2;
+        }
+        
+        .tab-btn:hover:not(.active) {
+            background-color: #e0e0e0;
+        }
+
+        .group-set { display: none; }
+        .group-set.active { display: block; }
+
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f1f3f5;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #555;
+            margin-top: 15px; 
+        }
+        .group-set .group-header:first-child { margin-top: 0; }
+
+        .add-all-btn {
+            font-size: 10px;
+            padding: 2px 8px;
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .person-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+            gap: 6px;
+            margin-bottom: 5px;
+        }
+
+        .person-card {
+            display: flex;
+            align-items: center;
+            padding: 4px;
+            border: 1px solid #eee;
+            border-radius: 3px;
+            cursor: pointer;
+            background: #fff;
+            transition: all 0.1s;
+        }
+
+        .person-card:hover {
+            border-color: #4a90e2;
+            background-color: #f0f7ff;
+            transform: translateY(-1px);
+        }
+
+        .person-card:active { transform: translateY(1px); }
+
+        .card-initial {
+            background-color: #e9ecef;
+            color: #333;
+            padding: 2px 0;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 11px;
+            width: 24px;
+            text-align: center;
+            margin-right: 6px;
+            flex-shrink: 0;
+        }
+
+        .card-name {
+            font-size: 11px;
+            color: #333;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .drag-hint {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        /* Image Card Specifics */
+        .info-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+        <div class="table-header-row">
+            <h3 class="table-title">Urutan Presentasi Lapag</h3>
+            <div class="btn-group">
+                <button class="action-btn save-btn" onclick="saveToFile()">Save .lapag</button>
+                <button class="action-btn load-btn" onclick="document.getElementById('file-input').click()">Load</button>
+                <input type="file" id="file-input" style="display: none;" accept=".lapag,.json" onchange="loadFromFile(this)">
+                
+                <button class="action-btn clear-btn" onclick="clearTable()">Clear</button>
+                <button class="action-btn export-btn" onclick="exportToJPG()">Export JPG</button>
+            </div>
+        </div>
+
+        <table id="resultTable">
+            <thead>
+                <tr>
+                    <th class="col-no">No</th>
+                    <th class="col-init">Inisial</th>
+                    <th class="col-name">Nama</th>
+                    <th class="col-action">Opt</th>
+                    <th class="col-ket">Keterangan</th>
+                </tr>
+            </thead>
+            <tbody id="sortable-body"></tbody>
+        </table>
+        <div class="drag-hint">Tip: Drag rows to reorder. Keterangan & Opt columns are hidden in JPG.</div>
+    </div>
+
+    <!-- RIGHT WRAPPER (Stacks Cards) -->
+    <div class="right-wrapper">
+        
+        <!-- CARD 1: Quick Add -->
+        <div class="right-panel-card">
+            <h3 class="panel-header">Masukkan nama residen</h3>
+
+            <!-- Tab Controls -->
+            <div class="tab-container">
+                <button class="tab-btn active" id="btn-early" onclick="switchTab('early')">R1 - R4</button>
+                <button class="tab-btn" id="btn-late" onclick="switchTab('late')">R5 - R7</button>
+            </div>
+
+            <!-- Group Set 1: R1 to R4 -->
+            <div id="set-r1-r4" class="group-set active">
+                <div class="group-header">
+                    <span>Residen R1</span>
+                    <button class="add-all-btn" onclick="addAll('R1')">Add All</button>
+                </div>
+                <div class="person-grid" id="group-r1"></div>
+
+                <div class="group-header">
+                    <span>Residen R2</span>
+                    <button class="add-all-btn" onclick="addAll('R2')">Add All</button>
+                </div>
+                <div class="person-grid" id="group-r2"></div>
+
+                <div class="group-header">
+                    <span>Residen R3</span>
+                    <button class="add-all-btn" onclick="addAll('R3')">Add All</button>
+                </div>
+                <div class="person-grid" id="group-r3"></div>
+
+                <div class="group-header">
+                    <span>Residen R4</span>
+                    <button class="add-all-btn" onclick="addAll('R4')">Add All</button>
+                </div>
+                <div class="person-grid" id="group-r4"></div>
+            </div>
+
+            <!-- Group Set 2: R5 to R7 -->
+            <div id="set-r5-r7" class="group-set">
+                <div class="group-header">
+                    <span>Residen R5</span>
+                    <button class="add-all-btn" onclick="addAll('R5')">Add All</button>
+                </div>
+                <div class="person-grid" id="group-r5"></div>
+
+                <div class="group-header">
+                    <span>Residen R6</span>
+                    <button class="add-all-btn" onclick="addAll('R6')">Add All</button>
+                </div>
+                <div class="person-grid" id="group-r6"></div>
+
+                <div class="group-header">
+                    <span>Residen R7</span>
+                    <button class="add-all-btn" onclick="addAll('R7')">Add All</button>
+                </div>
+                <div class="person-grid" id="group-r7"></div>
+            </div>
+        </div>
+
+        <!-- CARD 2: Info Image -->
+        <div class="right-panel-card">
+            <h3 class="panel-header" style="margin-bottom: 10px;">Panduan Operan</h3>
+            <img class="info-image" src="https://raw.githubusercontent.com/taufik-ridwan/lapag/refs/heads/main/assets/Operan%20Laporan%20Pagi.jpg" alt="Panduan Operan Laporan Pagi">
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- DATA ---
+    const groups = {
+        R1: [
+            { id: "TF", name: "TAUFIK RIDWAN HADI KUSUMA" },
+            { id: "AK", name: "AUDRIC KENNY TEDJA" },
+            { id: "IZ", name: "MUHAMMAD IZ ZUDDIN ADHA" },
+            { id: "MR", name: "MERINA RACHMADINA" },
+            { id: "VA", name: "ALVA PUTRI DESWANDARI" },
+            { id: "RN", name: "SITI CHAIRANI NUR" },
+            { id: "DL", name: "DEWI MARMINTA LASE" },
+            { id: "UT", name: "UTAMI SETIASIH" }
+        ],
+        R2: [
+            { id: "RI", name: "RIDHAM ISMU PRAHANTYO" },
+            { id: "VL", name: "VINY AGUSTIANI LESTARI" },
+            { id: "IP", name: "ISNI ARDIA PRASTYANA" },
+            { id: "LU", name: "LURI AULIANTI" },
+            { id: "CH", name: "CAMELIA SEPTINA HUTAHAYAN" },
+            { id: "AJ", name: "ANNANDA JUADIHAR PASHA" }
+        ],
+        R3: [
+            { id: "RA", name: "RIO ANGGARA" },
+            { id: "DI", name: "DIANA ADELAIDA KANDAMI" },
+            { id: "AN", name: "ANDRIANI" },
+            { id: "LM", name: "LELA MANTILI" },
+            { id: "AA", name: "ASTRI ANINDITA UTOMO" }
+        ],
+        R4: [
+            { id: "AD", name: "ADE SAPUTRI" },
+            { id: "DN", name: "DIANITA DWI PUJI RAHAYU" },
+            { id: "IM", name: "INAMYART MAHARANI" }
+        ],
+        R5: [
+            { id: "RG", name: "RHEZA GANDI BAWONO" },
+            { id: "CY", name: "CYNTHIA HIKMAH SAVITRI" },
+            { id: "FA", name: "FITHRIA ANGGRAYNI" },
+            { id: "GH", name: "GINIANI HILSA" },
+            { id: "PS", name: "PUSPITA SARI" },
+            { id: "RF", name: "RIZKY FERRIAN FERDIANSYAH" }
+        ],
+        R6: [
+            { id: "OM", name: "DWI WIRASTOMO" },
+            { id: "IU", name: "INDIRA UTAMI YUSUF" },
+            { id: "RE", name: "RESTI LHUTVIA ANDANI" },
+            { id: "SR", name: "SITANAJA RAYMOND" },
+            { id: "SW", name: "SWESTI SARI SUCIATI" }
+        ],
+        R7: [
+            { id: "RS", name: "NI LUH PUTU RUSTIARI" },
+            { id: "BR", name: "BENING RAHIMI TITISARI" },
+            { id: "ES", name: "ESTU SEPTIYANTO" },
+            { id: "IW", name: "INDRA WAHONO SUHARIYANTO" },
+            { id: "LY", name: "LELY AMEDIA RATRI" }
+        ]
+    };
+
+    // --- INITIALIZATION ---
+    window.onload = function() {
+        renderGroup('R1', 'group-r1');
+        renderGroup('R2', 'group-r2');
+        renderGroup('R3', 'group-r3');
+        renderGroup('R4', 'group-r4');
+        renderGroup('R5', 'group-r5');
+        renderGroup('R6', 'group-r6');
+        renderGroup('R7', 'group-r7');
+        setupDragAndDrop();
+    };
+
+    // --- TAB SWITCHING ---
+    function switchTab(tab) {
+        const setEarly = document.getElementById('set-r1-r4');
+        const setLate = document.getElementById('set-r5-r7');
+        const btnEarly = document.getElementById('btn-early');
+        const btnLate = document.getElementById('btn-late');
+
+        if (tab === 'early') {
+            setEarly.classList.add('active');
+            setLate.classList.remove('active');
+            btnEarly.classList.add('active');
+            btnLate.classList.remove('active');
+        } else {
+            setEarly.classList.remove('active');
+            setLate.classList.add('active');
+            btnEarly.classList.remove('active');
+            btnLate.classList.add('active');
+        }
+    }
+
+    function renderGroup(groupKey, containerId) {
+        const container = document.getElementById(containerId);
+        groups[groupKey].forEach(person => {
+            const div = document.createElement('div');
+            div.className = 'person-card';
+            div.onclick = () => addPerson(person.id, person.name);
+            div.innerHTML = `
+                <div class="card-initial">${person.id}</div>
+                <div class="card-name" title="${person.name}">${person.name}</div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    // --- EXPORT FUNCTION ---
+    function exportToJPG() {
+        const element = document.getElementById('resultTable');
+        const dpiScale = 3.125;
+
+        html2canvas(element, {
+            scale: dpiScale, 
+            useCORS: true,
+            backgroundColor: "#ffffff",
+            ignoreElements: (node) => {
+                // Ignore Option column AND Keterangan column
+                return node.classList.contains('col-action') || node.classList.contains('col-ket');
+            },
+            onclone: (clonedDoc) => {
+                const clonedTable = clonedDoc.getElementById('resultTable');
+                if (clonedTable) {
+                    clonedTable.style.width = 'fit-content';
+                }
+            }
+        }).then(canvas => {
+            const image = canvas.toDataURL("image/jpeg", 1.0);
+            const link = document.createElement('a');
+            link.download = 'urutan-presentasi-lapag.jpg';
+            link.href = image;
+            link.click();
+        });
+    }
+
+    // --- SAVE / LOAD FUNCTIONS ---
+    function saveToFile() {
+        const rows = [];
+        document.querySelectorAll('#sortable-body tr').forEach(tr => {
+            rows.push({
+                initial: tr.cells[1].innerText,
+                name: tr.cells[2].innerText,
+                note: tr.cells[4].innerText,
+                color: tr.style.backgroundColor
+            });
+        });
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(rows));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "urutan-presentasi.lapag");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    function loadFromFile(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                clearTable();
+                data.forEach(item => {
+                    addPerson(item.initial, item.name, item.note, item.color);
+                });
+                input.value = '';
+            } catch (error) {
+                alert("Invalid .lapag file!");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // --- TABLE LOGIC ---
+    function addPerson(initial, name, note = "", color = null) {
+        const tbody = document.getElementById('sortable-body');
+        const tr = document.createElement('tr');
+        
+        const colorLight = "#d9e1f2"; 
+        const colorDark  = "#b4c6e7"; 
+        const finalColor = color || colorLight;
+
+        tr.setAttribute('draggable', 'true');
+        tr.classList.add('draggable-row');
+        addDragEvents(tr);
+
+        applyRowColor(tr, finalColor);
+
+        tr.innerHTML = `
+            <td class="col-no"></td>
+            <td class="col-init" contenteditable="true">${initial}</td>
+            <td class="col-name" contenteditable="true">${name}</td>
+            <td class="col-action">
+                <div class="action-container">
+                    <span class="color-swatch swatch-light" onclick="setRowColor(this, '${colorLight}')" title="Light Blue"></span>
+                    <span class="color-swatch swatch-dark" onclick="setRowColor(this, '${colorDark}')" title="Darker Blue"></span>
+                    <button class="del-btn" onclick="deleteRow(this)" title="Remove">×</button>
+                </div>
+            </td>
+            <td class="col-ket" contenteditable="true">${note}</td>
+        `;
+        tbody.appendChild(tr);
+        updateNumbers(); 
+    }
+
+    function setRowColor(element, color) {
+        const row = element.closest('tr');
+        applyRowColor(row, color);
+    }
+
+    function applyRowColor(row, color) {
+        row.style.backgroundColor = color;
+        const tds = row.getElementsByTagName('td');
+        for(let td of tds) {
+            td.style.backgroundColor = color;
+        }
+    }
+
+    function addAll(groupKey) {
+        groups[groupKey].forEach(person => {
+            addPerson(person.id, person.name);
+        });
+    }
+
+    function deleteRow(btn) {
+        const row = btn.closest('tr');
+        row.remove();
+        updateNumbers();
+    }
+
+    function clearTable() {
+        document.getElementById('sortable-body').innerHTML = '';
+    }
+
+    function updateNumbers() {
+        const rows = document.querySelectorAll('#sortable-body tr');
+        rows.forEach((row, index) => {
+            row.cells[0].textContent = index + 1;
+        });
+    }
+
+    // --- DRAG AND DROP ---
+    function setupDragAndDrop() {
+        const container = document.getElementById('sortable-body');
+        container.addEventListener('dragover', e => {
+            e.preventDefault();
+            const afterElement = getDragAfterElement(container, e.clientY);
+            const draggable = document.querySelector('.dragging');
+            if (draggable) {
+                if (afterElement == null) {
+                    container.appendChild(draggable);
+                } else {
+                    container.insertBefore(draggable, afterElement);
+                }
+            }
+        });
+        container.addEventListener('drop', () => { updateNumbers(); });
+    }
+
+    function addDragEvents(row) {
+        row.addEventListener('dragstart', () => { row.classList.add('dragging'); });
+        row.addEventListener('dragend', () => { 
+            row.classList.remove('dragging');
+            updateNumbers();
+        });
+    }
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.draggable-row:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+</script>
+
+</body>
+</html>
